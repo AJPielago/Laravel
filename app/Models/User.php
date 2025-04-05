@@ -71,6 +71,7 @@ class User extends Authenticatable implements MustVerifyEmail
             ->whereHas('items', function ($query) use ($productId) {
                 $query->where('product_id', $productId);
             })
+            ->where('status', 'delivered')
             ->exists();
     }
 
@@ -80,6 +81,7 @@ class User extends Authenticatable implements MustVerifyEmail
             ->whereHas('items', function ($query) use ($productId) {
                 $query->where('product_id', $productId);
             })
+            ->where('status', 'delivered')
             ->latest()
             ->first();
     }
@@ -87,5 +89,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasRole(string $role): bool
     {
         return strtolower($this->role) === strtolower($role);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
     }
 }

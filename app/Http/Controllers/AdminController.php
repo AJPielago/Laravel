@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Review;
 
 class AdminController extends Controller
 {
@@ -30,5 +31,11 @@ class AdminController extends Controller
     public function manage()
     {
         return view('admin.manage');
+    }
+
+    public function reviews()
+    {
+        $reviews = Review::with(['user', 'product'])->get();
+        return view('admin.reviews.index', compact('reviews'));
     }
 }

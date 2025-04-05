@@ -277,4 +277,32 @@ class OrderController extends BaseController
         
         return view('orders.history', compact('orders'));
     }
+
+    public function cancel(Order $order)
+    {
+        try {
+            // Only allow cancellation of pending orders
+            if ($order->status !== 'pending') {
+                return redirect()->back()->with('error', 'This order cannot be cancelled.');
+            }
+
+            // Restore product stock
+            foreach ($order->items as $item) {
+                $product = $item->product;
+                $product->increment('stock', $item->quantity);
+            }
+
+            // Update order status to cancelled
+            $order->update(['status' => 'cancelled']);
+
+            return redirect()->route('orders.history')->with('success', 'Order has been cancelled successfully.');
+        } catch (\Exception $e) {
+            Log::error("Order cancellation failed", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'order_id' => $order->id
+            ]);
+            return redirect()->back()->with('error', 'Failed to cancel order: ' . $e->getMessage());
+        }
+    }
 }

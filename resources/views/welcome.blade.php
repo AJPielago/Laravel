@@ -67,7 +67,8 @@
         <p class="text-lg mb-6">Discover amazing products and enjoy a seamless shopping experience.</p>
         <div class="flex justify-center space-x-4">
             @auth
-                <a href="{{ route('products.index') }}" class="bg-white text-indigo-600 hover:bg-indigo-50 px-8 py-3 rounded-full font-semibold transition duration-300 shadow-lg hover:shadow-xl">
+                <a href="{{ auth()->user()->role === 'admin' ? route('dashboard') : route('customer.dashboard') }}" 
+                   class="bg-white text-indigo-600 hover:bg-indigo-50 px-8 py-3 rounded-full font-semibold transition duration-300 shadow-lg hover:shadow-xl">
                     Browse Products
                 </a>
             @else

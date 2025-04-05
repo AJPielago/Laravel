@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Laravel\Scout\Searchable;
+use App\Models\Review;
 
 class Product extends Model
 {
@@ -163,5 +164,15 @@ class Product extends Model
                   ->orWhere('description', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('category', 'LIKE', "%{$searchTerm}%");
         })->paginate(12);
+    }
+
+    /**
+     * Get the reviews for the product
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
     }
 }

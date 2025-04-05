@@ -44,13 +44,9 @@
                                         
                                         @if(!$existingReview)
                                             <button onclick="openReviewModal({{ $item->product->id }}, {{ $order->id }})" 
-                                                    class="mt-2 px-3 py-1 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-300">
-                                                Post Review
+                                                    class="mt-2 px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition">
+                                                Write a Review
                                             </button>
-                                        @else
-                                            <div class="mt-2 text-sm text-green-600">
-                                                You've already reviewed this product
-                                            </div>
                                         @endif
                                     @endif
                                 </div>
@@ -67,142 +63,121 @@
     </div>
 </div>
 
-<!-- Review Modal -->
-<div id="reviewModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-lg shadow-xl w-96 p-6">
-        <h2 class="text-2xl font-bold text-indigo-600 mb-4">Write a Review</h2>
-        <form id="reviewForm" method="POST">
-            @csrf
-            <input type="hidden" id="productId" name="product_id">
-            <input type="hidden" id="orderId" name="order_id">
-            
-            <div class="mb-4">
-                <label class="block text-gray-700 mb-2">Rating</label>
-                <div class="flex space-x-1">
-                    @for($i = 1; $i <= 5; $i++)
-                        <button type="button" 
-                                onclick="setRating({{ $i }})" 
-                                class="star-btn text-gray-300 hover:text-yellow-400 focus:outline-none"
-                                data-rating="{{ $i }}">
-                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                            </svg>
-                        </button>
-                    @endfor
-                </div>
-                <input type="hidden" id="rating" name="rating" required>
-            </div>
-            
-            <div class="mb-4">
-                <label for="comment" class="block text-gray-700 mb-2">Review</label>
-                <textarea id="comment" name="comment" rows="4" 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" 
-                          placeholder="Tell us about your experience..." 
-                          required></textarea>
-            </div>
-            
-            <div class="flex justify-end space-x-2">
-                <button type="button" 
-                        onclick="closeReviewModal()" 
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                    Cancel
-                </button>
-                <button type="submit" 
-                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                    Submit Review
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
-function setRating(rating) {
-    const stars = document.querySelectorAll('.star-btn');
-    const ratingInput = document.getElementById('rating');
+function openReviewModal(productId, orderId) {
+    // Create a modal for writing a review
+    const modal = document.createElement('div');
+    modal.innerHTML = `
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg p-8 max-w-md w-full">
+                <h2 class="text-2xl font-bold mb-4 text-indigo-600">Write a Review</h2>
+                <form id="reviewForm">
+                    <input type="hidden" name="product_id" value="${productId}">
+                    <input type="hidden" name="order_id" value="${orderId}">
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">Rating</label>
+                        <div class="flex space-x-1">
+                            ${[1,2,3,4,5].map(star => `
+                                <button type="button" onclick="setRating(${star})" 
+                                        class="star-btn text-gray-300 hover:text-yellow-400" 
+                                        data-rating="${star}">
+                                    ★
+                                </button>
+                            `).join('')}
+                        </div>
+                        <input type="hidden" name="rating" id="ratingInput" value="0">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">Review</label>
+                        <textarea name="comment" rows="4" 
+                                  class="w-full border rounded p-2 focus:ring-2 focus:ring-indigo-300" 
+                                  placeholder="Share your experience..."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" onclick="closeReviewModal()" 
+                                class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                            Submit Review
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
     
-    stars.forEach(star => {
-        const starRating = parseInt(star.getAttribute('data-rating'));
-        if (starRating <= rating) {
-            star.classList.remove('text-gray-300');
-            star.classList.add('text-yellow-400');
-        } else {
-            star.classList.remove('text-yellow-400');
-            star.classList.add('text-gray-300');
-        }
-    });
-    
-    ratingInput.value = rating;
+    document.body.appendChild(modal.firstChild);
 }
 
-function openReviewModal(productId, orderId) {
-    const modal = document.getElementById('reviewModal');
-    const productIdInput = document.getElementById('productId');
-    const orderIdInput = document.getElementById('orderId');
-    const reviewForm = document.getElementById('reviewForm');
-    
-    // Reset form
-    reviewForm.reset();
-    document.querySelectorAll('.star-btn').forEach(star => {
-        star.classList.remove('text-yellow-400');
-        star.classList.add('text-gray-300');
+function setRating(rating) {
+    document.getElementById('ratingInput').value = rating;
+    const starButtons = document.querySelectorAll('.star-btn');
+    starButtons.forEach(btn => {
+        const btnRating = parseInt(btn.getAttribute('data-rating'));
+        btn.classList.toggle('text-yellow-400', btnRating <= rating);
+        btn.classList.toggle('text-gray-300', btnRating > rating);
     });
-    
-    // Set hidden inputs
-    productIdInput.value = productId;
-    orderIdInput.value = orderId;
-    
-    // Show modal
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
 }
 
 function closeReviewModal() {
-    const modal = document.getElementById('reviewModal');
-    modal.classList.remove('flex');
-    modal.classList.add('hidden');
+    const modal = document.querySelector('.fixed.inset-0.bg-black');
+    if (modal) {
+        modal.remove();
+    }
 }
 
-document.getElementById('reviewForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    
-    fetch('{{ route("reviews.store") }}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            createToast({
-                type: 'success',
-                message: 'Review Submitted',
-                details: 'Thank you for your feedback!'
-            });
-            closeReviewModal();
-            // Optionally refresh the page or update the UI
-        } else {
-            createToast({
-                type: 'error',
-                message: 'Error',
-                details: data.message || 'Failed to submit review'
-            });
-        }
-    })
-    .catch(error => {
-        createToast({
-            type: 'error',
-            message: 'Error',
-            details: 'An unexpected error occurred'
+document.addEventListener('DOMContentLoaded', () => {
+    const reviewForm = document.getElementById('reviewForm');
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(reviewForm);
+            
+            try {
+                const response = await fetch('{{ route("reviews.store") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Review Submitted',
+                        text: 'Thank you for your feedback!'
+                    });
+                    closeReviewModal();
+                    // Optionally refresh the page or update the UI
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: result.message || 'Failed to submit review'
+                    });
+                }
+            } catch (error) {
+                console.error('Review submission error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An unexpected error occurred'
+                });
+            }
         });
-    });
+    }
 });
 </script>
-@endsection
+@endpush

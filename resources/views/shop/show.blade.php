@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $product->name }} - Lara Shop</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -68,6 +69,29 @@
                                 </span>
                             </div>
 
+                            <!-- Add Rating Summary -->
+                            <div class="mb-6">
+                                @php
+                                    $averageRating = $product->reviews()->avg('rating');
+                                    $reviewCount = $product->reviews()->count();
+                                @endphp
+                                <div class="flex items-center gap-2">
+                                    <div class="flex items-center">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <span class="text-2xl {{ $i <= round($averageRating) ? 'text-yellow-400' : 'text-gray-300' }}">★</span>
+                                        @endfor
+                                    </div>
+                                    <span class="text-gray-600">({{ number_format($averageRating, 1) }}/5 from {{ $reviewCount }} {{ Str::plural('review', $reviewCount) }})</span>
+                                </div>
+                            </div>
+
+                            <!-- View Reviews Button -->
+                            <button type="button" 
+                                    onclick="toggleReviews()"
+                                    class="w-full mb-4 bg-indigo-100 text-indigo-600 px-6 py-3 rounded-full hover:bg-indigo-200 transition duration-300">
+                                View Reviews
+                            </button>
+
                             @if(!empty($otherPhotos))
                                 <div class="grid grid-cols-4 gap-4 mt-4">
                                     @foreach($otherPhotos as $photo)
@@ -82,7 +106,7 @@
                         </div>
                         
                         <div class="mt-auto">
-                            <form action="{{ route('cart.add', $product) }}" method="POST" id="add-to-cart-form">
+                            <form action="{{ route('cart.add', $product) }}" method="POST" id="add-to-cart-form" class="mt-8">
                                 @csrf
                                 <button type="button" 
                                         class="w-full bg-indigo-600 text-white px-6 py-3 rounded-full hover:bg-indigo-700 transition duration-300"
@@ -90,7 +114,51 @@
                                     Add to Cart
                                 </button>
                             </form>
+                            
+                            @php
+                                $deliveredOrders = auth()->user()->orders()
+                                    ->where('status', 'delivered')
+                                    ->whereHas('items', function($query) use ($product) {
+                                        $query->where('product_id', $product->id);
+                                    })
+                                    ->get();
+                            @endphp
+
+                            @if($deliveredOrders->isNotEmpty())
+                                <button type="button" 
+                                        onclick="openReviewModal('{{ $deliveredOrders->first()->id }}')"
+                                        class="w-full mt-2 bg-green-600 text-white px-6 py-3 rounded-full hover:bg-green-700 transition duration-300">
+                                    Write a Review
+                                </button>
+                            @endif
                         </div>
+                    </div>
+                </div>
+
+                @include('shop.reviews.create')
+
+                <!-- Add Reviews List Section -->
+                <div id="reviewsSection" class="hidden mt-8 border-t pt-8">
+                    <h2 class="text-2xl font-bold text-indigo-600 mb-4">Customer Reviews</h2>
+                    <div id="reviewsList" class="space-y-4">
+                        @foreach($product->reviews()->with('user')->latest()->get() as $review)
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-semibold">{{ $review->user->name }}</span>
+                                            <span class="text-gray-500 text-sm">{{ $review->created_at->diffForHumans() }}</span>
+                                        </div>
+                                        <div class="flex text-yellow-400 my-1">
+                                            @for ($i = 1; $i <= 5; $i++)
+                                                <span>{{ $i <= $review->rating ? '★' : '☆' }}</span>
+                                            @endfor
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 mt-2">{{ $review->comment }}</p>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
 
@@ -116,198 +184,72 @@
                         modal.classList.add('hidden');
                     }
                 }
+
+                function openReviewModal(orderId) {
+                    document.getElementById('order_id').value = orderId;
+                    document.getElementById('reviewModal').classList.remove('hidden');
+                }
+
+                function closeReviewModal() {
+                    document.getElementById('reviewModal').classList.add('hidden');
+                }
+
+                function toggleReviews() {
+                    const reviewsSection = document.getElementById('reviewsSection');
+                    if (reviewsSection.classList.contains('hidden')) {
+                        reviewsSection.classList.remove('hidden');
+                        window.scrollTo({
+                            top: reviewsSection.offsetTop - 100,
+                            behavior: 'smooth'
+                        });
+                    } else {
+                        reviewsSection.classList.add('hidden');
+                    }
+                }
+
+                // Add AJAX form submission
+                document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const submitButton = this.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+                    
+                    try {
+                        const response = await fetch('{{ route('reviews.store') }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Your review has been submitted successfully.'
+                            });
+                            closeReviewModal();
+                            // Optionally reload the page to show the new review
+                            location.reload();
+                        } else {
+                            throw new Error(result.message || 'Failed to submit review');
+                        }
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: error.message || 'Something went wrong. Please try again.'
+                        });
+                    } finally {
+                        submitButton.disabled = false;
+                    }
+                });
                 </script>
 
-                <!-- Notification Element -->
-                <div id="cart-notification" class="fixed top-4 right-4 z-50 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow-xl p-4 transform transition-all duration-300 opacity-0 translate-y-[-20px] pointer-events-none">
-                    <div class="flex items-center">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <div>
-                            <p class="font-semibold" id="notification-message"></p>
-                            <p class="text-sm text-white/80" id="notification-details"></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Reviews Section -->
-                <div class="border-t pt-8">
-                    <h2 class="text-2xl font-bold text-indigo-600 mb-6">Customer Reviews</h2>
-                    
-                    @if(auth()->check() && auth()->user()->hasOrderedProduct($product->id))
-                        @php
-                            $existingReview = $product->reviews()->where('user_id', auth()->id())->first();
-                            $order = auth()->user()->getProductOrder($product->id);
-                        @endphp
-
-                        @if($order && $order->canBeReviewed())
-                            <form action="{{ $existingReview ? route('reviews.update', $existingReview) : route('reviews.store', $product) }}" 
-                                  method="POST" 
-                                  class="mb-8">
-                                @csrf
-                                @if($existingReview)
-                                    @method('PUT')
-                                @endif
-                                <input type="hidden" name="order_id" value="{{ $order->id }}">
-                                
-                                <div class="mb-4">
-                                    <label class="block text-gray-700 mb-2">Rating</label>
-                                    <div class="flex space-x-2">
-                                        @for($i = 1; $i <= 5; $i++)
-                                            <input type="radio" 
-                                                   name="rating" 
-                                                   value="{{ $i }}" 
-                                                   {{ $existingReview && $existingReview->rating == $i ? 'checked' : '' }}
-                                                   required>
-                                            <label class="mr-4">{{ $i }}</label>
-                                        @endfor
-                                    </div>
-                                </div>
-
-                                <div class="mb-4">
-                                    <label class="block text-gray-700 mb-2">Your Review</label>
-                                    <textarea name="comment" 
-                                              rows="4" 
-                                              class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring focus:ring-indigo-200"
-                                              required>{{ $existingReview ? $existingReview->comment : '' }}</textarea>
-                                </div>
-
-                                <button type="submit"
-                                        class="bg-indigo-600 text-white px-6 py-2 rounded-full hover:bg-indigo-700 transition duration-300">
-                                    {{ $existingReview ? 'Update Review' : 'Submit Review' }}
-                                </button>
-                            </form>
-                        @else
-                            <p class="text-yellow-600">You can only review products from completed orders.</p>
-                        @endif
-                    @endif
-
-                    <div class="space-y-6">
-                        @php
-                            $reviews = $product->reviews ?? collect();
-                        @endphp
-                        @if($reviews->count() > 0)
-                            @foreach($reviews as $review)
-                                <div class="bg-gray-50 rounded-lg p-6">
-                                    <div class="flex justify-between items-start mb-4">
-                                        <div>
-                                            <p class="font-semibold">{{ $review->user->name }}</p>
-                                            <div class="flex items-center">
-                                                @for($i = 1; $i <= 5; $i++)
-                                                    <svg class="w-5 h-5 {{ $i <= $review->rating ? 'text-yellow-400' : 'text-gray-300' }}" 
-                                                         fill="currentColor" 
-                                                         viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                                    </svg>
-                                                @endfor
-                                            </div>
-                                        </div>
-                                        <span class="text-gray-500 text-sm">{{ $review->created_at->diffForHumans() }}</span>
-                                    </div>
-                                    <p class="text-gray-600">{{ $review->comment }}</p>
-                                </div>
-                            @endforeach
-                        @else
-                            <div class="bg-gray-50 rounded-lg p-6 text-center text-gray-600">
-                                <p>No reviews yet for this product.</p>
-                                <p class="mt-2 text-sm text-gray-500">Be the first to leave a review!</p>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <script>
-function addToCart() {
-    const form = document.getElementById('add-to-cart-form');
-    const formData = new FormData(form);
-    const productName = '{{ $product->name }}';
-    const productPrice = '{{ number_format($product->price, 2) }}';
-    
-    // Show loading state
-    const toast = Swal.fire({
-        title: 'Adding to Cart...',
-        text: `${productName} - $${productPrice}`,
-        icon: 'info',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    // Submit the form via fetch
-    fetch(form.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => { throw new Error(err.message || 'Network response was not ok'); });
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                title: 'Added to Cart!',
-                text: data.message,
-                icon: 'success',
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true,
-                background: 'linear-gradient(to right, #6366f1, #a855f7)',
-                color: '#ffffff',
-                iconColor: '#ffffff',
-                customClass: {
-                    popup: 'rounded-lg shadow-xl'
-                }
-            });
-            
-            // Update cart count
-            const cartCountEl = document.getElementById('cart-count');
-            if (cartCountEl) {
-                cartCountEl.textContent = data.cart_count || (parseInt(cartCountEl.textContent) + 1);
-            }
-        } else {
-            throw new Error(data.message || 'Failed to add item to cart');
-        }
-    })
-    .catch(error => {
-        Swal.fire({
-            title: 'Error',
-            text: error.message || 'Failed to add item to cart. Please try again.',
-            icon: 'error',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            background: 'linear-gradient(to right, #ff6b6b, #ff4757)',
-            color: '#ffffff',
-            iconColor: '#ffffff',
-            customClass: {
-                popup: 'rounded-lg shadow-xl'
-            }
-        });
-        console.error('Error:', error);
-    });
-}
-</script>
-<!-- Soft Cyan Border -->
-<footer class="bg-purple-50 text-gray-700 text-center py-6 border-t border-cyan-100">
-    <p>&copy; 2025 Lara Shop. All rights reserved.</p>
-</footer>
 </body>
 </html>

@@ -19,11 +19,14 @@ use Illuminate\Support\Facades\Log;
 use App\Mail\OrderConfirmationMail;
 
 // Public routes
-Route::get('/', WelcomeController::class)->name('welcome');
+Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 
 // Public products route
 Route::get('/products', [ProductController::class, 'index'])
     ->name('products.index');
+
+// Public Reviews Route
+Route::get('/reviews', [ReviewController::class, 'index'])->name('shop.reviews');
 
 // Protected routes
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -51,9 +54,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/orders/history', [OrderController::class, 'history'])->name('orders.history');
     Route::post('/cart/add/{product}', [CartController::class, 'addItem'])
         ->name('cart.add');
+    Route::delete('/cart/remove/{product}', [CartController::class, 'remove'])
+        ->name('cart.remove');
+
+    // Review Routes
+    Route::post('/reviews/{product}', [ReviewController::class, 'store'])
+        ->name('reviews.store')
+        ->middleware(['auth', 'verified']);
+    Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
+    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
     // Admin routes - consolidate all admin routes under one middleware group
-    Route::middleware(['auth', 'verified', \App\Http\Middleware\AdminMiddleware::class])->group(function () {
+    Route::middleware([\App\Http\Middleware\AdminMiddleware::class])->group(function () {
         // Products Resource (place FIRST in group)
         Route::resource('products', ProductController::class)->except(['index', 'show']);
 
@@ -75,6 +87,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}/manage', [OrderController::class, 'manage'])->name('orders.manage');
         Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+        Route::put('/orders/{order}/cancel', [OrderController::class, 'cancel'])
+            ->name('orders.cancel');
         Route::get('/admin/orders', [AdminController::class, 'orders'])->name('admin.orders');
         
         // Users Management
@@ -90,30 +104,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         // Admin management
         Route::get('/admin/manage', [AdminController::class, 'manage'])->name('admin.manage');
+
+        // Reviews Routes
+        Route::post('/reviews/{product}', [ReviewController::class, 'store'])->name('reviews.store');
+        Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
+        Route::get('/reviews/data', [ReviewController::class, 'getReviews'])->name('reviews.get');
+
+        // Reviews Management (Admin)
+        Route::get('/admin/reviews', [AdminController::class, 'reviews'])->name('reviews.index');
+        Route::get('/admin/reviews/data', [ReviewController::class, 'data'])->name('reviews.data');
+        Route::delete('/admin/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
     });
 
-    // Test/debug routes
-    Route::get('/debug-email-test', function () {
-        // ... existing test code ...
-    })->middleware([\App\Http\Middleware\AdminMiddleware::class]);
-
-    Route::get('/test-order-email', function () {
-        // ... existing test code ...
-    })->middleware([\App\Http\Middleware\AdminMiddleware::class]);
-
-    Route::get('/test-mail', function () {
-        // ... existing test code ...
-    });
-
-    Route::get('/test-email', function() {
-        // ... existing test code ...
-    })->middleware(['auth', 'admin']);
+    // Public/Customer Review Routes
+    Route::get('/product/{product}/reviews', [ReviewController::class, 'index'])->name('product.reviews');
+    Route::post('/reviews/{product}', [ReviewController::class, 'store'])
+        ->name('reviews.store')
+        ->middleware(['auth', 'verified']);
 });
 
 // Additional routes
 Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
 Route::get('/shop/{product}', [ShopController::class, 'show'])->name('shop.show');
-Route::get('/reviews/{product}', [ReviewController::class, 'index'])->name('reviews.index');
 
 // Profile routes
 Route::middleware('auth')->group(function () {

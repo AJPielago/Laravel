@@ -7,45 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-900">
-    <header class="bg-white shadow-md py-4">
-        <div class="container mx-auto flex justify-between items-center px-6">
-            <div class="flex items-center space-x-4">
-                <a href="{{ route('welcome') }}" class="flex items-center">
-                    <img src="{{ asset('logo.png') }}" alt="Lara Shop Logo" class="h-10 w-auto">
-                </a>
-                <h1 class="text-2xl font-bold text-indigo-600 hidden md:block">Lara Shop</h1>
-            </div>
-            <nav class="space-x-4 flex items-center">
-                <a href="{{ route('shop.index') }}" class="text-gray-800 hover:text-indigo-600 transition">Shop</a>
-                <a href="{{ route('cart.index') }}" class="relative text-gray-800 hover:text-indigo-600 transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
-                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {{ count(session('cart', [])) }}
-                    </span>
-                </a>
-                <a href="{{ route('orders.history') }}" class="text-gray-800 hover:text-indigo-600 transition">My Orders</a>
-                <a href="{{ route('profile.edit') }}" class="flex items-center space-x-2">
-                    @if(Auth::user()->photo)
-                        <img src="{{ Storage::url(Auth::user()->photo) }}" 
-                             alt="{{ Auth::user()->name }}" 
-                             class="w-8 h-8 rounded-full object-cover border-2 border-indigo-200">
-                    @else
-                        <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                        </div>
-                    @endif
-                </a>
-                <form method="POST" action="{{ route('logout') }}" class="inline">
-                    @csrf
-                    <button type="submit" class="text-indigo-600 hover:text-indigo-800 font-semibold">Logout</button>
-                </form>
-            </nav>
-        </div>
-    </header>
+@include('layouts.header')
 
     <main class="min-h-[calc(100vh-8rem)] bg-gradient-to-r from-indigo-500 to-purple-500 py-12">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
