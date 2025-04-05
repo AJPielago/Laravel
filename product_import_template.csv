@@ -1,0 +1,3 @@
+name,description,price,stock,category_id
+Sample Product 1,A great product description,19.99,100,1
+Another Product,Another description,29.99,50,2
