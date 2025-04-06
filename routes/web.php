@@ -12,6 +12,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\AdminController; 
 use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\CategoryController; // Add this line
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -67,6 +68,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin routes - consolidate all admin routes under one middleware group
     Route::middleware([\App\Http\Middleware\AdminMiddleware::class])->group(function () {
+        // Categories Resource
+        Route::resource('categories', \App\Http\Controllers\CategoryController::class);
+
         // Products Resource (place FIRST in group)
         Route::resource('products', ProductController::class)->except(['index', 'show']);
 
@@ -112,9 +116,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/reviews/data', [ReviewController::class, 'getReviews'])->name('reviews.get');
 
         // Reviews Management (Admin)
-        Route::get('/admin/reviews', [AdminController::class, 'reviews'])->name('reviews.index');
-        Route::get('/admin/reviews/data', [ReviewController::class, 'data'])->name('reviews.data');
-        Route::delete('/admin/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+        Route::get('/admin/reviews', [ReviewController::class, 'adminIndex'])->name('admin.reviews.index');
+        Route::get('/admin/reviews/data', [ReviewController::class, 'adminData'])->name('admin.reviews.data');
+        Route::delete('/admin/reviews/{review}', [ReviewController::class, 'adminDestroy'])->name('admin.reviews.destroy');
+
+        // Categories Management
+        // Route::resource('categories', \App\Http\Controllers\CategoryController::class);
     });
 
     // Public/Customer Review Routes
@@ -122,6 +129,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/reviews/{product}', [ReviewController::class, 'store'])
         ->name('reviews.store')
         ->middleware(['auth', 'verified']);
+});
+
+// Admin routes - consolidate all admin routes under one middleware group
+// Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(function () {
+//     // Remove the duplicate categories resource route and keep it only here
+//     // Route::resource('categories', \App\Http\Controllers\CategoryController::class);
+// });
+
+Route::middleware(['auth'])->group(function () {
+    Route::resource('categories', CategoryController::class);
 });
 
 // Additional routes

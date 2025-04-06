@@ -19,13 +19,12 @@
                         <table id="reviews-table" class="w-full stripe hover">
                             <thead>
                                 <tr class="bg-gray-50 dark:bg-gray-700 border-b">
-                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">ID</th>
-                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Product</th>
-                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">User</th>
-                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Rating</th>
-                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Comment</th>
-                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Date</th>
-                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300" id="col-id">ID</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300" id="col-product">Product</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300" id="col-user">User</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300" id="col-comment">Comment</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300" id="col-date">Date</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300" id="col-actions">Actions</th>
                                 </tr>
                             </thead>
                         </table>
@@ -76,30 +75,58 @@
 @endsection
 
 @push('scripts')
-@if(auth()->user()->isAdmin())
 <script>
     $(document).ready(function() {
+        const isAdmin = {{ auth()->user()->isAdmin() ? 'true' : 'false' }};
+        
+        const columns = [
+            { data: 'id', name: 'id' },
+            { data: 'product_name', name: 'product.name' }
+        ];
+
+        // Conditionally add user name or rating column
+        if (isAdmin) {
+            columns.push({ data: 'user_name', name: 'user.name' });
+        } else {
+            columns.push({ data: 'rating', name: 'rating' });
+        }
+
+        // Add comment and created_at columns
+        columns.push(
+            { data: 'comment', name: 'comment' },
+            { data: 'created_at', name: 'created_at' },
+            { 
+                data: 'actions', 
+                name: 'actions', 
+                orderable: false, 
+                searchable: false 
+            }
+        );
+
         $('#reviews-table').DataTable({
             processing: true,
             serverSide: true,
             ajax: {
-                url: "{{ route('reviews.data') }}",
-                type: "GET"
-            },
-            columns: [
-                { data: 'id', name: 'id' },
-                { data: 'product_name', name: 'product.name' },
-                { data: 'user_name', name: 'user.name' },
-                { data: 'rating', name: 'rating' },
-                { data: 'comment', name: 'comment' },
-                { data: 'created_at', name: 'created_at' },
-                { 
-                    data: 'actions', 
-                    name: 'actions', 
-                    orderable: false, 
-                    searchable: false 
+                url: isAdmin ? "{{ route('admin.reviews.data') }}" : "{{ route('reviews.data') }}",
+                type: "GET",
+                error: function (xhr, error, code) {
+                    console.error('DataTables Ajax Error:', {
+                        error: error,
+                        status: xhr.status,
+                        responseText: xhr.responseText,
+                        responseJSON: xhr.responseJSON
+                    });
+
+                    // Display a user-friendly error message
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Data Loading Error',
+                        text: 'Unable to load reviews. Please try again later.',
+                        footer: `Error details: ${xhr.status} ${error}`
+                    });
                 }
-            ],
+            },
+            columns: columns,
             responsive: true,
             language: {
                 processing: '<div class="flex justify-center items-center"><div class="spinner-border text-indigo-600" role="status"><span class="sr-only">Loading...</span></div></div>'
@@ -156,5 +183,4 @@
         });
     }
 </script>
-@endif
 @endpush

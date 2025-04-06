@@ -13,19 +13,21 @@ class Product extends Model
     use Searchable, HasFactory;
 
     protected $fillable = [
-        'name', 
-        'price', 
-        'stock', 
-        'photos',
+        'name',
         'description',
+        'category_id',
+        'price',
+        'stock',
+        'photos',
         'is_deleted',
-        'category',
         'searchable_text'
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
-        'is_deleted' => 'boolean'
+        'stock' => 'integer',
+        'is_deleted' => 'boolean',
+        'photos' => 'array'
     ];
 
     /**
@@ -135,7 +137,7 @@ class Product extends Model
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'category' => $this->category,
+            'category' => $this->category ? $this->category->name : null,
             'price' => $this->price,
             'searchable_text' => $this->generateSearchableText()
         ];
@@ -151,7 +153,7 @@ class Product extends Model
         return implode(' ', [
             $this->name,
             $this->description,
-            $this->category,
+            $this->category ? $this->category->name : '',
             $this->price
         ]);
     }
@@ -162,7 +164,9 @@ class Product extends Model
         return self::where(function($query) use ($searchTerm) {
             $query->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('description', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('category', 'LIKE', "%{$searchTerm}%");
+                  ->orWhereHas('category', function($query) use ($searchTerm) {
+                      $query->where('name', 'LIKE', "%{$searchTerm}%");
+                  });
         })->paginate(12);
     }
 
@@ -174,5 +178,13 @@ class Product extends Model
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Get the category that owns the product.
+     */
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 }

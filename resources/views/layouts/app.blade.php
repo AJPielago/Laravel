@@ -41,6 +41,7 @@
         <div class="min-h-screen flex flex-col">
             @include('layouts.header')
 
+            <!-- Page Content -->
             <main class="flex-grow min-h-[calc(100vh-8rem)] bg-gradient-to-r from-indigo-500 to-purple-500 py-8">
                 <div class="container mx-auto px-4">
                     @yield('content')
@@ -53,7 +54,7 @@
         @if(session('success'))
             <div id="notification" class="fixed top-4 right-4 z-50 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow-lg p-4 transform transition-all duration-500 opacity-0 translate-y-[-20px]">
                 <div class="flex items-center">
-                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                     <p>{{ session('success') }}</p>
@@ -73,7 +74,7 @@
                     setTimeout(() => {
                         notification.classList.remove('opacity-100', 'translate-y-0');
                         notification.classList.add('opacity-0', 'translate-y-[-20px]');
-                        
+                              
                         // Remove from DOM after animation completes
                         setTimeout(() => {
                             notification.remove();
@@ -85,7 +86,7 @@
 
         @if(session('toast'))
             <div id="toast" 
-                 class="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-xl transform transition-all duration-500 ease-out translate-y-2 opacity-0">
+                 class="fixed bottom-4 right-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-3 rounded-lg shadow-xl transform transition-all duration-500 ease-out translate-y-2 opacity-0">
                 <div class="flex items-center space-x-3">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>

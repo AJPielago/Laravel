@@ -11,6 +11,10 @@
                        class="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition">
                         Add New Product
                     </a>
+                    <a href="{{ route('categories.index') }}" 
+                       class="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition">
+                        Manage Categories
+                    </a>
                     <a href="{{ route('products.import.form') }}" 
                        class="bg-emerald-600 text-white px-4 py-2 rounded-full hover:bg-emerald-700 transition">
                         Import Products
@@ -86,7 +90,7 @@
                                          class="w-16 h-16 object-cover rounded-md">
                                 </td>
                                 <td class="px-6 py-4">{{ $product->name }}</td>
-                                <td class="px-6 py-4">{{ $product->category }}</td>
+                                <td class="px-6 py-4">{{ $product->category->name ?? 'No Category' }}</td>
                                 <td class="px-6 py-4">${{ number_format($product->price, 2) }}</td>
                                 <td class="px-6 py-4">{{ $product->stock }}</td>
                                 <td class="px-6 py-4">

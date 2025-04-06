@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Review;
+use App\Models\Category;
 
 class AdminController extends Controller
 {
@@ -37,5 +38,57 @@ class AdminController extends Controller
     {
         $reviews = Review::with(['user', 'product'])->get();
         return view('admin.reviews.index', compact('reviews'));
+    }
+
+    public function categories()
+    {
+        $categories = Category::withCount('products')
+            ->orderBy('name')
+            ->paginate(10);
+
+        return view('categories.index', compact('categories'));
+    }
+
+    public function createCategory()
+    {
+        return view('admin.categories.create');
+    }
+
+    public function storeCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|unique:categories|max:255',
+            'description' => 'nullable|string|max:1000'
+        ]);
+
+        Category::create($validated);
+
+        return redirect()->route('admin.categories')
+            ->with('success', 'Category created successfully');
+    }
+
+    public function editCategory(Category $category)
+    {
+        return view('admin.categories.edit', compact('category'));
+    }
+
+    public function updateCategory(Request $request, Category $category)
+    {
+        $validated = $request->validate([
+            'name' => 'required|max:255|unique:categories,name,' . $category->id,
+            'description' => 'nullable|string|max:1000'
+        ]);
+
+        $category->update($validated);
+
+        return redirect()->route('admin.categories')
+            ->with('success', 'Category updated successfully');
+    }
+
+    public function destroyCategory(Category $category)
+    {
+        $category->delete();
+        return redirect()->route('admin.categories')
+            ->with('success', 'Category deleted successfully');
     }
 }

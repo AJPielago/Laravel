@@ -28,7 +28,7 @@
             processing: true,
             serverSide: true,
             ajax: {
-                url: "{{ route('reviews.data') }}",
+                url: "{{ route('admin.reviews.data') }}",
                 type: "GET"
             },
             columns: [

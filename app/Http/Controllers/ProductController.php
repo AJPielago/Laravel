@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Category;  // Add this line
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Log;
@@ -76,12 +77,8 @@ class ProductController extends Controller
 
     public function create()
     {
-        // Check if the current user is an admin
-        if (!Auth::user() || Auth::user()->role !== 'admin') {
-            abort(403, 'Unauthorized action.');
-        }
-
-        return view('products.create');
+        $categories = Category::all();
+        return view('products.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -91,11 +88,12 @@ class ProductController extends Controller
             abort(403, 'Unauthorized action.');
         }
         
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required',
-            'price' => 'required|numeric',
-            'stock' => 'required|integer',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
             'description' => 'nullable|string',
+            'category_id' => 'required|exists:categories,id', // Change this line
             'photos' => 'nullable|array',
             'photos.*' => ['nullable', 'file', function($attribute, $value, $fail) {
                 // Check if the file is an image
@@ -117,11 +115,12 @@ class ProductController extends Controller
                     $fail("The $attribute must not be larger than 2MB.");
                 }
             }],
-            'category' => 'nullable|in:Pencils,Papers,Accessories,Boards,Colors,Erasers'
         ], [
             'photos.*.file' => 'Each uploaded file must be a valid image.',
             'photos.*.mimes' => 'Images must be of type: jpg, jpeg, or png.',
-            'photos.*.max' => 'Each image must not exceed 2MB.'
+            'photos.*.max' => 'Each image must not exceed 2MB.',
+            'category_id.required' => 'Please select a category',
+            'category_id.exists' => 'The selected category does not exist'
         ]);
 
         // Log all incoming request data for debugging
@@ -138,11 +137,9 @@ class ProductController extends Controller
                 'No files'
         ]);
 
-        $product = new Product($request->except('photos', 'category'));
+        $product = new Product($request->except('photos'));
 
-        if ($request->has('category')) {
-            $product->category = $request->input('category');
-        }
+        $product->category_id = $validated['category_id']; // Make sure this matches
 
         if ($request->hasFile('photos')) {
             $photoPaths = [];
@@ -221,24 +218,19 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        // Ensure photos is a JSON string
-        $product->photos = is_array($product->photos) ? 
-            json_encode($product->photos) : 
-            ($product->photos ?: '[]');
-        
-        return view('products.edit', compact('product'));
+        $categories = Category::all();
+        return view('products.edit', compact('product', 'categories'));
     }
 
     public function update(Request $request, Product $product)
     {
-        // Validate the incoming request
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
-            'category' => 'required|string',
-            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // Validate each photo
+            'category_id' => 'required|exists:categories,id',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
             'existing_photos' => 'nullable|string',
             'deleted_photos' => 'nullable|string',
         ]);
@@ -289,7 +281,7 @@ class ProductController extends Controller
             'description' => $validatedData['description'],
             'price' => $validatedData['price'],
             'stock' => $validatedData['stock'],
-            'category' => $validatedData['category'],
+            'category_id' => $validatedData['category_id'],
             'photos' => json_encode($photoPaths) // Store photos as JSON string
         ]);
 
@@ -358,11 +350,10 @@ class ProductController extends Controller
     public function getData()
     {
         try {
-            $products = Product::query(); // Remove the where clause to show all products
-            Log::info('Fetching products for DataTables', ['query' => $products->toSql()]);
+            $products = Product::with('category');
 
             return DataTables::of($products)
-            ->addColumn('photo', function ($product) {
+                ->addColumn('photo', function ($product) {
                     if ($product->photo) {
                         return '<img src="' . asset('storage/' . $product->photo) . '" alt="Product" class="w-16 h-16 object-cover rounded-lg shadow-sm">';
                     }
@@ -371,8 +362,11 @@ class ProductController extends Controller
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                 </svg>
                             </div>';
-            })
-            ->addColumn('action', function ($product) {
+                })
+                ->addColumn('category', function ($product) {
+                    return $product->category ? $product->category->name : 'N/A';
+                })
+                ->addColumn('action', function ($product) {
                     return '
                         <div class="flex space-x-2">
                             <a href="' . route('products.edit', $product->id) . '" class="text-indigo-600 hover:text-indigo-900 font-medium">Edit</a>
@@ -383,9 +377,9 @@ class ProductController extends Controller
                             </form>
                         </div>
                     ';
-            })
-            ->rawColumns(['photo', 'action'])
-            ->make(true);
+                })
+                ->rawColumns(['photo', 'action'])
+                ->make(true);
         } catch (\Exception $e) {
             Log::error('Error in getData: ' . $e->getMessage());
             return response()->json(['error' => 'Unable to fetch data'], 500);
