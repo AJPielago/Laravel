@@ -42,10 +42,18 @@ class OrderController extends BaseController
     public function store(Request $request)
     {
         try {
-            $request->validate([
-                'shipping_address' => 'required|string',
-                'phone' => 'required|string',
-            ]);
+            $user = Auth::user();
+            
+            if(!$user->shipping_address || !$user->phone) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please add shipping details in your profile first'
+                    ], 400);
+                }
+                return redirect()->route('profile.edit')
+                               ->with('warning', 'Please add shipping details before placing an order.');
+            }
 
             $cart = session()->get('cart', []);
             
@@ -73,8 +81,8 @@ class OrderController extends BaseController
             $order = Order::create([
                 'user_id' => Auth::id(),
                 'total' => $total,
-                'shipping_address' => $request->shipping_address,
-                'phone' => $request->phone,
+                'shipping_address' => $user->shipping_address,
+                'phone' => $user->phone,
                 'status' => 'pending'
             ]);
 
@@ -226,7 +234,20 @@ class OrderController extends BaseController
             // Dispatch event for any additional processing
             event(new OrderStatusChanged($order, $oldStatus, $newStatus));
             
-            return redirect()->route('orders.manage', $order)->with([
+            // If status is delivered, redirect back 
+            if ($newStatus === 'delivered') {
+                return redirect()->back()->with([
+                    'status_change' => [
+                        'old' => $oldStatus,
+                        'new' => $newStatus,
+                        'email_sent' => true
+                    ],
+                    'review_prompt' => true
+                ]);
+            }
+            
+            // For other status changes, redirect back with status change info
+            return redirect()->back()->with([
                 'status_change' => [
                     'old' => $oldStatus,
                     'new' => $newStatus,
@@ -350,5 +371,15 @@ class OrderController extends BaseController
 
         $order->load(['items.product']); // Eager load relationships
         return view('customer.orders.show', compact('order'));
+    }
+
+    public function customerHistory()
+    {
+        $orders = Order::where('user_id', Auth::id())
+            ->with(['items.product'])
+            ->latest()
+            ->paginate(10);
+        
+        return view('customer.order-history', compact('orders'));
     }
 }

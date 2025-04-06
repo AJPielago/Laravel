@@ -3,24 +3,23 @@
 @push('styles')
 <style>
     .slider-container {
-        overflow: hidden;
+        overflow: visible;
         width: 100%;
-        max-width: 800px;
+        max-width: 1400px;
         margin: auto;
-        position: relative;
+        padding: 1rem;
     }
 
     .slider {
-        display: flex;
-        transition: transform 0.8s ease-in-out;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.5rem;
     }
 
     .slide {
-        flex: 0 0 33.33%;
-        /* Improved transition for smooth scaling and opacity */
-        transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
         position: relative;
         z-index: 1;
+        transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     .slide.active {
@@ -28,12 +27,10 @@
         z-index: 10;
     }
     
-    /* No transition for the reset */
     .no-transition {
         transition: none !important;
     }
     
-    /* Add perspective for a more dynamic effect */
     .card-perspective {
         perspective: 1000px;
     }
@@ -122,24 +119,22 @@
         @endif
 
         @if($products->total() > 0)
-            <!-- Slider Container -->
-            <div x-data="productSlider()" class="slider-container">
-                <div 
-                    x-ref="slider" 
-                    class="slider flex space-x-4"
-                    @mousemove.throttle.50ms="updateActiveSlide($event)"
+            <div class="slider-container">
+                <div x-data="productSlider()" 
+                     x-ref="slider" 
+                     class="slider"
+                     @mousemove.throttle.50ms="updateActiveSlide($event)"
                 >
                     @foreach($products as $index => $product)
-                        <div 
-                            class="slide flex-shrink-0 w-1/3 p-4 transition-all duration-300 ease-in-out"
-                            :class="{
-                                'active': activeSlide === {{ $index }}, 
-                                'opacity-50': activeSlide !== {{ $index }} && activeSlide !== null
-                            }"
-                            @mouseenter="activeSlide = {{ $index }}"
-                            @mouseleave="activeSlide = null"
+                        <div class="slide flex-shrink-0"
+                             :class="{
+                                 'active': activeSlide === {{ $index }}, 
+                                 'opacity-50': activeSlide !== {{ $index }} && activeSlide !== null
+                             }"
+                             @mouseenter="activeSlide = {{ $index }}"
+                             @mouseleave="activeSlide = null"
                         >
-                            <div class="bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105">
+                            <div class="bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
                                 <img 
                                     src="{{ $product->first_photo ? asset('storage/' . $product->first_photo) : asset('images/default-product.jpg') }}" 
                                     alt="{{ $product->name }}" 
@@ -149,7 +144,7 @@
                                     <h4 class="text-lg font-semibold text-gray-800 mb-2">{{ $product->name }}</h4>
                                     <p class="text-indigo-600 font-bold text-xl">${{ number_format($product->price, 2) }}</p>
                                     <div class="mt-4 flex justify-between items-center">
-                                        <span class="text-sm text-gray-500">{{ $product->category }}</span>
+                                        <span class="text-sm text-gray-500">{{ $product->category?->name ?? 'Uncategorized' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -178,7 +173,6 @@
                 const sliderWidth = slider.offsetWidth;
                 const slideWidth = slides[0].offsetWidth;
                 
-                // Calculate which slide should be active based on mouse position
                 const activeIndex = Math.floor(mouseX / slideWidth);
                 
                 if (activeIndex >= 0 && activeIndex < slides.length) {

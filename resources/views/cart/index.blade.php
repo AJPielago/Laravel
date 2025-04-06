@@ -28,7 +28,24 @@
                                 @endif
                                 <div>
                                     <h3 class="font-semibold text-lg">{{ $details['name'] }}</h3>
-                                    <p class="text-gray-600">${{ number_format($details['price'], 2) }} x {{ $details['quantity'] }}</p>
+                                    <p class="text-gray-600">${{ number_format($details['price'], 2) }}</p>
+                                    <div class="flex items-center mt-2">
+                                        <button type="button" 
+                                                onclick="updateQuantity({{ $id }}, -1)"
+                                                class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                                            </svg>
+                                        </button>
+                                        <span class="mx-4 font-medium" id="qty-{{ $id }}">{{ $details['quantity'] }}</span>
+                                        <button type="button"
+                                                onclick="updateQuantity({{ $id }}, 1)"
+                                                class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2">
@@ -51,7 +68,7 @@
                     @endforeach
                     
                     <div class="mt-6 flex justify-between items-center">
-                        <p class="text-2xl font-bold text-indigo-600">Total: ${{ number_format($total, 2) }}</p>
+                        <p class="text-2xl font-bold text-indigo-600" id="cart-total">Total: ${{ number_format($total, 2) }}</p>
                         <a href="{{ route('cart.checkout') }}" 
                            class="bg-indigo-600 text-white px-8 py-3 rounded-full hover:bg-indigo-700 transition duration-300 shadow-lg">
                             Proceed to Checkout
@@ -63,3 +80,52 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function updateQuantity(productId, change) {
+    const qtyElement = document.getElementById(`qty-${productId}`);
+    let newQty = parseInt(qtyElement.textContent) + change;
+    
+    // Ensure quantity doesn't go below 1
+    if (newQty < 1) return;
+    
+    fetch(`{{ url('/cart/update') }}/${productId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            quantity: newQty
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update quantity display
+            qtyElement.textContent = newQty;
+            
+            // Update total price display using the specific cart total element
+            const cartTotalEl = document.getElementById('cart-total');
+            if (cartTotalEl && data.cart_total) {
+                cartTotalEl.textContent = `Total: $${parseFloat(data.cart_total).toFixed(2)}`;
+            }
+        } else {
+            throw new Error(data.message || 'Failed to update quantity');
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to update quantity',
+            icon: 'error',
+            toast: true,
+            position: 'top-end',
+            timer: 3000
+        });
+    });
+}
+</script>
+@endpush

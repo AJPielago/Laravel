@@ -10,25 +10,21 @@ class WelcomeController extends Controller
 {
     public function index(Request $request)
     {
-        // Base query for non-deleted products
-        $query = Product::where('is_deleted', false);
+        $search = $request->input('search');
 
-        // Apply search if search term is provided
-        if ($request->filled('search')) {
-            $searchTerm = $request->input('search');
-            
-            // Use Eloquent search with multiple columns
-            $products = Product::where('is_deleted', false)
-                ->where(function ($q) use ($searchTerm) {
-                    $q->where('name', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('description', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('category', 'LIKE', "%{$searchTerm}%");
-                })
-                ->orderBy('created_at', 'desc')
-                ->paginate(5);
-        } else {
-            $products = $query->orderBy('created_at', 'desc')->paginate(5);
-        }
+        $products = Product::where('is_deleted', 0)
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'LIKE', "%{$search}%")
+                        ->orWhere('description', 'LIKE', "%{$search}%")
+                        ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                            $categoryQuery->where('name', 'LIKE', "%{$search}%");
+                        });
+                });
+            })
+            ->with('category') // Eager load category relationship
+            ->latest()  // Order by created_at desc
+            ->paginate(5); // Change to 5 items per page
 
         // Add first photo to each product
         $products->transform(function ($product) {

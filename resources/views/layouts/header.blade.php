@@ -53,8 +53,8 @@
                         {{ request()->routeIs('shop.index') ? 'text-indigo-600 font-semibold' : '' }}">
                         Products
                     </a>
-                    <a href="{{ route('orders.index') }}" class="text-gray-600 hover:text-indigo-600 
-                        {{ request()->routeIs('customer.order-history') ? 'text-indigo-600 font-semibold' : '' }}">
+                    <a href="{{ route('orders.history') }}" class="text-gray-600 hover:text-indigo-600 
+                        {{ request()->routeIs('orders.history') ? 'text-indigo-600 font-semibold' : '' }}">
                         Orders
                     </a>
                     <a href="{{ route('cart.index') }}" class="relative text-gray-800 hover:text-indigo-600 transition">

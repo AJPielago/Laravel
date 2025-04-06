@@ -78,6 +78,42 @@ class CartController extends Controller
         return redirect()->back();
     }
 
+    public function updateQuantity(Request $request, Product $product)
+    {
+        $cart = session()->get('cart', []);
+        
+        if(isset($cart[$product->id])) {
+            $newQuantity = (int)$request->quantity;
+            
+            // Validate against product stock
+            if($newQuantity > $product->stock) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Not enough stock available'
+                ]);
+            }
+            
+            $cart[$product->id]['quantity'] = $newQuantity;
+            session()->put('cart', $cart);
+            
+            $total = 0;
+            foreach($cart as $item) {
+                $total += $item['price'] * $item['quantity'];
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Cart updated successfully',
+                'cart_total' => $total
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Product not found in cart'
+        ]);
+    }
+
     public function checkout()
     {
         $cart = session()->get('cart', []);
@@ -85,6 +121,11 @@ class CartController extends Controller
         
         foreach($cart as $item) {
             $total += $item['price'] * $item['quantity'];
+        }
+
+        if(!auth()->user()->shipping_address || !auth()->user()->phone) {
+            return redirect()->route('profile.edit')
+                           ->with('warning', 'Please add your shipping details before checkout.');
         }
         
         return view('cart.checkout', compact('cart', 'total'));

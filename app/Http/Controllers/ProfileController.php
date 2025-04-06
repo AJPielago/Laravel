@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Illuminate\Http\JsonResponse;
 
 class ProfileController extends Controller
 {
@@ -25,7 +26,7 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request): RedirectResponse|JsonResponse
     {
         $user = $request->user();
 
@@ -33,26 +34,23 @@ class ProfileController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$user->id,
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'shipping_address' => 'nullable|string',
+            'phone' => 'nullable|string|regex:/^[0-9]+$/'
         ]);
 
         // Update name and email
         $user->name = $request->input('name');
         $user->email = $request->input('email');
+        $user->shipping_address = $request->input('shipping_address');
+        $user->phone = $request->input('phone');
 
         // Handle profile picture upload
         if ($request->hasFile('photo')) {
-            // Delete old photo if exists
             if ($user->photo) {
                 Storage::disk('public')->delete($user->photo);
             }
-
-            // Generate a unique filename
             $filename = 'user_' . $user->id . '_' . time() . '.' . $request->file('photo')->getClientOriginalExtension();
-            
-            // Store new photo in public/users directory
             $photoPath = $request->file('photo')->storeAs('users', $filename, 'public');
-            
-            // Save only the relative path to the database
             $user->photo = $photoPath;
         }
 
@@ -61,6 +59,13 @@ class ProfileController extends Controller
         }
 
         $user->save();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully'
+            ]);
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

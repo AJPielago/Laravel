@@ -2,61 +2,107 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Review;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Models\Order;
+use App\Models\Review;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
 
 class ReviewController extends Controller
 {
-    public function store(Request $request)
+    public function store(Request $request, Product $product)
     {
         try {
-            $validated = $request->validate([
-                'product_id' => 'required|exists:products,id',
-                'order_id' => 'required|exists:orders,id',
+            $validatedData = $request->validate([
                 'rating' => 'required|integer|min:1|max:5',
-                'comment' => 'required|string|min:10',
+                'comment' => 'nullable|string|max:500',
+                'order_id' => 'required|exists:orders,id'
             ]);
 
-            // Check if user has already reviewed this product
-            $existingReview = Review::where('user_id', auth()->id())
-                                  ->where('product_id', $validated['product_id'])
-                                  ->first();
+            // Find the order and verify it's delivered and belongs to the user
+            $order = Order::where('id', $validatedData['order_id'])
+                         ->where('user_id', auth()->id())
+                         ->where('status', 'delivered')
+                         ->first();
 
-            if ($existingReview) {
+            if (!$order) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You have already reviewed this product'
+                    'message' => 'Invalid order or unauthorized access.'
+                ], 403);
+            }
+
+            // Verify that the order contains this product
+            $hasProduct = $order->items()
+                               ->where('product_id', $product->id)
+                               ->exists();
+
+            if (!$hasProduct) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This product is not in the specified order.'
                 ], 400);
             }
 
-            $review = Review::create([
-                'user_id' => auth()->id(),
-                'product_id' => $validated['product_id'],
-                'order_id' => $validated['order_id'],
-                'rating' => $validated['rating'],
-                'comment' => $validated['comment'],
-            ]);
-
-            Log::info('Review created successfully', ['review_id' => $review->id]);
+            // Create or update the review
+            $review = Review::updateOrCreate(
+                [
+                    'user_id' => auth()->id(),
+                    'product_id' => $product->id,
+                    'order_id' => $order->id
+                ],
+                [
+                    'rating' => $validatedData['rating'],
+                    'comment' => $validatedData['comment']
+                ]
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Review submitted successfully'
+                'message' => 'Review submitted successfully!'
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Review creation failed', [
-                'error' => $e->getMessage(),
-                'user_id' => auth()->id()
-            ]);
-
+            Log::error('Error in product review store: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to submit review: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function create(Order $order)
+    {
+        // Ensure the order belongs to the authenticated user
+        if ($order->user_id !== auth()->id()) {
+            return redirect()->back()->with('error', 'Unauthorized to review this order.');
+        }
+
+        // Check if the order is delivered
+        if ($order->status !== 'delivered') {
+            return redirect()->back()->with('error', 'You can only review delivered orders.');
+        }
+
+        // Check if a review already exists for this order
+        $existingReview = Review::where('order_id', $order->id)->first();
+        if ($existingReview) {
+            return redirect()->back()->with('error', 'You have already reviewed this order.');
+        }
+
+        // Find the first product in the order
+        $orderItem = $order->items->first();
+        if (!$orderItem) {
+            return redirect()->back()->with('error', 'No products found in this order.');
+        }
+
+        // Pass the order and its first product to the view
+        return view('reviews.create', [
+            'order' => $order,
+            'product' => $orderItem->product
+        ]);
     }
 
     public function index()
@@ -193,6 +239,119 @@ class ReviewController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error deleting review: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function redirectToProduct(Order $order)
+    {
+        // Ensure the order belongs to the authenticated user
+        if ($order->user_id !== auth()->id()) {
+            return redirect()->back()->with('error', 'Unauthorized to review this order.');
+        }
+
+        // Check if the order is delivered
+        if ($order->status !== 'delivered') {
+            return redirect()->back()->with('error', 'You can only review delivered orders.');
+        }
+
+        // Find the first product in the order
+        $orderItem = $order->items->first();
+        if (!$orderItem) {
+            return redirect()->back()->with('error', 'No products found in this order.');
+        }
+
+        // Redirect to the product page with a review prompt and order ID
+        return redirect()->route('shop.show', $orderItem->product)
+            ->with('review_prompt', true)
+            ->with('order_id', $order->id);
+    }
+
+    public function storeProductReview(Request $request, Product $product)
+    {
+        try {
+            $validatedData = $request->validate([
+                'rating' => 'required|integer|min:1|max:5',
+                'comment' => 'nullable|string|max:500',
+                'order_id' => 'required|exists:orders,id'
+            ]);
+
+            // Check if the order belongs to the user and is delivered
+            $order = Order::where('id', $validatedData['order_id'])
+                ->where('user_id', auth()->id())
+                ->where('status', 'delivered')
+                ->first();
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid order or order is not delivered'
+                ], 400);
+            }
+
+            // Check if the order contains this product
+            $hasProduct = $order->items()->where('product_id', $product->id)->exists();
+            if (!$hasProduct) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This product is not in the specified order'
+                ], 400);
+            }
+
+            // Find existing review or create new one
+            $review = Review::updateOrCreate(
+                [
+                    'user_id' => auth()->id(),
+                    'product_id' => $product->id
+                ],
+                [
+                    'rating' => $validatedData['rating'],
+                    'comment' => $validatedData['comment'],
+                    'order_id' => $validatedData['order_id']
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Review submitted successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error in product review store: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit review'
+            ], 500);
+        }
+    }
+
+    public function update(Request $request, Product $product, Review $review)
+    {
+        try {
+            // Verify user owns the review
+            if ($review->user_id !== auth()->id() || $review->product_id !== $product->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Review not found or unauthorized access.'
+                ], 404);
+            }
+
+            $validatedData = $request->validate([
+                'rating' => 'required|integer|min:1|max:5',
+                'comment' => 'required|string|max:500',
+            ]);
+
+            $review->update($validatedData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Review updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating review: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update review'
             ], 500);
         }
     }

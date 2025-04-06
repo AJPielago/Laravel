@@ -1,7 +1,26 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<div class="container mx-auto px-4 py-8">
+    @if(session('status_change'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+            Order status changed from 
+            <strong>{{ ucfirst(session('status_change')['old']) }}</strong> 
+            to 
+            <strong>{{ ucfirst(session('status_change')['new']) }}</strong>
+        </div>
+    @endif
+
+    @if(session('review_prompt'))
+        <div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4 flex justify-between items-center" role="alert">
+            <span>{{ session('review_prompt') }}</span>
+            <a href="{{ route('reviews.create', ['order' => $order->id]) }}" 
+               class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4">
+                Leave a Review
+            </a>
+        </div>
+    @endif
+
     <div class="bg-white shadow-lg rounded-lg p-8">
         <div class="mb-8">
             <h1 class="text-3xl font-bold text-indigo-600">Order #{{ $order->id }}</h1>

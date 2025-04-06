@@ -14,63 +14,23 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        // Always fetch products
         $query = Product::query();
 
-        // Filter by category if provided
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
         }
 
-        // Filter by min price if provided
         if ($request->filled('min_price')) {
             $query->where('price', '>=', $request->input('min_price'));
         }
 
-        // Filter by max price if provided
         if ($request->filled('max_price')) {
             $query->where('price', '<=', $request->input('max_price'));
         }
 
-        $products = $query->where('is_deleted', false)->get()->map(function ($product) {
-            // Parse photos, handling different potential formats
-            $photos = $product->photos;
-            
-            // Log the original photos value for debugging
-            Log::info('Original photos for product ' . $product->id, [
-                'photos_type' => gettype($photos),
-                'photos_value' => $photos
-            ]);
-
-            // If photos is a JSON string, decode it
-            if (is_string($photos)) {
-                $photos = json_decode($photos, true);
-                
-                // Log the decoded photos
-                Log::info('Decoded photos for product ' . $product->id, [
-                    'decoded_photos' => $photos
-                ]);
-            }
-
-            // Get the first photo, or use a default image if no photos exist
-            if (is_array($photos) && count($photos) > 0) {
-                $firstPhoto = str_replace('\/', '/', trim($photos[0], '"'));
-                
-                // Log the processed first photo
-                Log::info('First photo for product ' . $product->id, [
-                    'first_photo' => $firstPhoto
-                ]);
-                
-                $product->first_photo = $firstPhoto;
-            } else {
-                $product->first_photo = 'default-product.jpg';
-                
-                // Log when no photos are found
-                Log::info('No photos found for product ' . $product->id);
-            }
-            
-            return $product;
-        });
+        $products = $query->where('is_deleted', false)
+                         ->latest()
+                         ->paginate(10);
 
         return view('products.index', compact('products'));
     }

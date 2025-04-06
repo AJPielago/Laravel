@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\Review;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -16,9 +17,22 @@ class ShopController extends Controller
     {
         $query = Product::where('is_deleted', false);
 
+        // Search functionality with prefix matching
+        if ($request->filled('search')) {
+            $searchTerm = $request->input('search');
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('name', 'like', "{$searchTerm}%")  // Changed from %{$searchTerm}% to {$searchTerm}%
+                  ->orWhereHas('category', function($subQ) use ($searchTerm) {
+                      $subQ->where('name', 'like', "{$searchTerm}%");  // Also update category search
+                  });
+            });
+        }
+
         // Filter by category
         if ($request->filled('category')) {
-            $query->where('category', $request->input('category'));
+            $query->whereHas('category', function($q) use ($request) {
+                $q->where('name', $request->input('category'));
+            });
         }
 
         // Filter by price range
@@ -31,15 +45,15 @@ class ShopController extends Controller
 
         $query->where('stock', '>', 0);
 
-        $products = $query->paginate(12);
+        $products = $query->with('category')->paginate(12);  // Add eager loading for category
 
         // Get unique categories for filter dropdown
-        $categories = Product::where('is_deleted', false)
-            ->distinct('category')
-            ->whereIn('category', ['Pencils', 'Papers', 'Accessories', 'Boards', 'Colors', 'Erasers'])
-            ->pluck('category')
-            ->filter()
-            ->values();
+        $categories = Category::select('name')
+            ->whereHas('products', function($q) {
+                $q->where('is_deleted', false);
+            })
+            ->distinct()
+            ->pluck('name');
 
         return view('shop.index', compact('products', 'categories'));
     }
@@ -47,87 +61,38 @@ class ShopController extends Controller
     public function show(Product $product)
     {
         try {
-            // Log the start of the method with product details
-            Log::info('ShopController show method started', [
-                'product_id' => $product->id,
-                'product_name' => $product->name,
-                'is_authenticated' => auth()->check()
-            ]);
-
-            // Verify product exists and can be retrieved
-            if (!$product) {
-                Log::error('Product not found', ['product_id' => $product->id]);
-                return redirect()->route('shop.index')->with('error', 'Product not found.');
-            }
-
-            $existingReview = null;
-            $latestOrderId = null;
-
-            // Start a database transaction for additional safety
             DB::beginTransaction();
 
-            if (auth()->check()) {
-                // Detailed logging for database queries
-                Log::info('Checking delivered orders', [
-                    'user_id' => auth()->id(),
-                    'product_id' => $product->id
-                ]);
+            $existingReview = null;
+            $deliveredOrder = null;
 
-                // Check if user has purchased this product
-                $deliveredOrders = Order::where('user_id', auth()->id())
+            if (auth()->check()) {
+                // Find any delivered order for this product
+                $deliveredOrder = auth()->user()->orders()
+                    ->where('status', 'delivered')
                     ->whereHas('items', function($query) use ($product) {
                         $query->where('product_id', $product->id);
                     })
-                    ->where('status', 'delivered')
-                    ->get();
+                    ->latest()
+                    ->first();
 
-                Log::info('Delivered orders query result', [
-                    'orders_count' => $deliveredOrders->count()
-                ]);
-
-                // Get the latest order ID if the user has purchased the product
-                $latestOrderId = $deliveredOrders->count() > 0 
-                    ? $deliveredOrders->sortByDesc('delivered_at')->first()->id 
-                    : null;
-
-                // Check if user has already reviewed this product
+                // Check for existing review regardless of order
                 $existingReview = Review::where('user_id', auth()->id())
                     ->where('product_id', $product->id)
                     ->first();
-
-                Log::info('Existing review check', [
-                    'existing_review' => $existingReview ? $existingReview->id : 'No existing review'
-                ]);
             }
 
-            // Commit the transaction
             DB::commit();
 
-            // Prepare view data
-            $viewData = [
-                'product' => $product,
-                'existingReview' => $existingReview,
-                'latestOrderId' => $latestOrderId
-            ];
-
-            Log::info('Rendering shop.show view', $viewData);
-
-            return view('shop.show', $viewData);
+            return view('shop.show', compact('product', 'deliveredOrder', 'existingReview'));
 
         } catch (\Exception $e) {
-            // Rollback the transaction in case of an error
             DB::rollBack();
-
-            // Log the full error details
             Log::error('Error in ShopController show method', [
-                'error_message' => $e->getMessage(),
-                'error_trace' => $e->getTraceAsString(),
-                'product_id' => $product->id,
-                'user_id' => auth()->check() ? auth()->id() : 'Not authenticated'
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-
-            // Redirect with a generic error message
-            return redirect()->route('shop.index')->with('error', 'An unexpected error occurred. Please try again.');
+            return redirect()->route('shop.index')->with('error', 'An unexpected error occurred.');
         }
     }
 }

@@ -57,14 +57,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('cart.add');
     Route::delete('/cart/remove/{product}', [CartController::class, 'remove'])
         ->name('cart.remove');
+    Route::post('/cart/update/{product}', [CartController::class, 'updateQuantity'])->name('cart.update');
     Route::get('/customer/orders/{order}', [OrderController::class, 'customerShow'])->name('customer.orders.show');
 
     // Review Routes
-    Route::post('/reviews/{product}', [ReviewController::class, 'store'])
-        ->name('reviews.store')
-        ->middleware(['auth', 'verified']);
-    Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
-    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+    Route::get('/reviews/create/{order}', [ReviewController::class, 'redirectToProduct'])
+        ->name('reviews.create')
+        ->middleware(['auth']);
+    Route::post('/product/{product}/reviews', [ReviewController::class, 'store'])
+        ->name('product.reviews.store');
+    Route::put('/product/{product}/reviews/{review}', [ReviewController::class, 'update'])
+        ->name('product.reviews.update');
+    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])
+        ->name('reviews.destroy');
 
     // Admin routes - consolidate all admin routes under one middleware group
     Route::middleware([\App\Http\Middleware\AdminMiddleware::class])->group(function () {
@@ -91,7 +96,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Orders Management
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}/manage', [OrderController::class, 'manage'])->name('orders.manage');
-        Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
         Route::put('/orders/{order}/cancel', [OrderController::class, 'cancel'])
             ->name('orders.cancel');
         Route::get('/admin/orders', [AdminController::class, 'orders'])->name('admin.orders');
@@ -111,24 +115,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/manage', [AdminController::class, 'manage'])->name('admin.manage');
 
         // Reviews Routes
-        Route::post('/reviews/{product}', [ReviewController::class, 'store'])->name('reviews.store');
+        Route::post('/reviews/{order}', [ReviewController::class, 'store'])->name('reviews.store');
         Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
         Route::get('/reviews/data', [ReviewController::class, 'getReviews'])->name('reviews.get');
 
-        // Reviews Management (Admin)
+        // Reviews Management (Admin only)
         Route::get('/admin/reviews', [ReviewController::class, 'adminIndex'])->name('admin.reviews.index');
         Route::get('/admin/reviews/data', [ReviewController::class, 'adminData'])->name('admin.reviews.data');
         Route::delete('/admin/reviews/{review}', [ReviewController::class, 'adminDestroy'])->name('admin.reviews.destroy');
-
-        // Categories Management
-        // Route::resource('categories', \App\Http\Controllers\CategoryController::class);
     });
 
     // Public/Customer Review Routes
     Route::get('/product/{product}/reviews', [ReviewController::class, 'index'])->name('product.reviews');
-    Route::post('/reviews/{product}', [ReviewController::class, 'store'])
-        ->name('reviews.store')
-        ->middleware(['auth', 'verified']);
+    Route::post('/product/{product}/reviews', [ReviewController::class, 'store'])->name('product.reviews.store');
+    Route::put('/product/{product}/reviews/{review}', [ReviewController::class, 'update'])->name('product.reviews.update');
+});
+
+// Routes for order status update by customers
+Route::middleware(['auth'])->group(function () {
+    Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
 });
 
 // Admin routes - consolidate all admin routes under one middleware group
@@ -139,6 +144,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::resource('categories', CategoryController::class);
+    
+    // Customer Order History Route
+    Route::get('/orders/history', [App\Http\Controllers\OrderController::class, 'customerHistory'])
+        ->name('order-history.index');
+    Route::get('/orders/history', [App\Http\Controllers\OrderController::class, 'history'])
+        ->name('orders.history');
+    
+    // Customer Order Delivery Confirmation Route
+    Route::put('/orders/{order}/confirm-delivery', [App\Http\Controllers\OrderController::class, 'confirmDelivery'])
+        ->name('orders.confirm-delivery');
 });
 
 // Additional routes

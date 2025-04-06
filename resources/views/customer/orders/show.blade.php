@@ -74,7 +74,7 @@
                 </div>
             </div>
 
-            <div class="mt-8">
+            <div class="mt-8 flex flex-wrap gap-4 items-center">
                 <a href="{{ route('orders.history') }}" 
                    class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,6 +82,37 @@
                     </svg>
                     Back to Order History
                 </a>
+
+                @if($order->status === 'pending')
+                    <form action="{{ route('orders.cancel', $order) }}" method="POST" class="inline">
+                        @csrf
+                        @method('PUT')
+                        <button type="submit" 
+                                onclick="return confirm('Are you sure you want to cancel this order?')"
+                                class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
+                            Cancel Order
+                        </button>
+                    </form>
+                @endif
+
+                @if($order->status === 'shipped')
+                    <form action="{{ route('orders.update-status', $order) }}" method="POST" class="inline">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="status" value="delivered">
+                        <button type="submit" 
+                                onclick="return confirm('Mark this order as delivered?')"
+                                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                            Mark as Delivered
+                        </button>
+                    </form>
+                @endif
+                @if($order->status === 'delivered')
+                    <a href="{{ route('reviews.create', $order) }}" 
+                       class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                        Write a review
+                    </a>
+                @endif
             </div>
         </div>
     </div>
