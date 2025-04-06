@@ -346,4 +346,22 @@ class ProductController extends Controller
             return response()->json(['error' => 'Unable to fetch data'], 500);
         }
     }
+
+    public function search(Request $request)
+    {
+        $query = $request->get('query');
+        
+        $products = Product::where('is_deleted', false)
+            ->where(function($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhereHas('category', function($sq) use ($query) {
+                      $sq->where('name', 'like', "%{$query}%");
+                  });
+            })
+            ->with('category')
+            ->limit(5)
+            ->get();
+
+        return response()->json($products);
+    }
 }

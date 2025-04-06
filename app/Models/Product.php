@@ -133,42 +133,31 @@ class Product extends Model
      */
     public function toSearchableArray()
     {
+        if (!$this->relationLoaded('category')) {
+            $this->load('category');
+        }
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'category' => $this->category ? $this->category->name : null,
             'price' => $this->price,
+            'stock' => $this->stock,
             'searchable_text' => $this->generateSearchableText()
         ];
     }
 
-    /**
-     * Generate a combined searchable text field
-     * 
-     * @return string
-     */
     public function generateSearchableText()
     {
-        return implode(' ', [
+        return implode(' ', array_filter([
             $this->name,
             $this->description,
             $this->category ? $this->category->name : '',
-            $this->price
-        ]);
+            (string)$this->price
+        ]));
     }
 
-    // Model Search Method (10 pts)
-    public static function search($searchTerm)
-    {
-        return self::where(function($query) use ($searchTerm) {
-            $query->where('name', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('description', 'LIKE', "%{$searchTerm}%")
-                  ->orWhereHas('category', function($query) use ($searchTerm) {
-                      $query->where('name', 'LIKE', "%{$searchTerm}%");
-                  });
-        })->paginate(12);
-    }
+    /* Remove the search() method - we'll use Scout's native search */
 
     /**
      * Get the reviews for the product
