@@ -46,7 +46,7 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm">
-                                        <a href="{{ route('orders.show', $order->id) }}" class="text-indigo-600 hover:text-indigo-900 font-medium">View Details</a>
+                                        <a href="{{ route('customer.orders.show', $order->id) }}" class="text-indigo-600 hover:text-indigo-900 font-medium">View Details</a>
                                     </td>
                                 </tr>
                             @endforeach

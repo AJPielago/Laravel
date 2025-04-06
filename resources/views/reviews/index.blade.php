@@ -133,7 +133,7 @@
                             title: 'Deleted!', 
                             text: 'Review has been deleted.', 
                             icon: 'success',
-                            timer: 2000,
+                            timer: 3000,
                             timerProgressBar: true
                         });
                         $('#reviews-table').DataTable().ajax.reload();

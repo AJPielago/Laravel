@@ -50,6 +50,12 @@ class OrderController extends BaseController
             $cart = session()->get('cart', []);
             
             if(empty($cart)) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Your cart is empty'
+                    ], 400);
+                }
                 return redirect()->back()->with('error', 'Your cart is empty');
             }
 
@@ -85,6 +91,12 @@ class OrderController extends BaseController
                         'available_stock' => $product->stock
                     ]);
                     
+                    if ($request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Insufficient stock for {$product->name}. Only {$product->stock} available."
+                        ], 400);
+                    }
                     return redirect()->back()->with('error', 
                         "Insufficient stock for {$product->name}. Only {$product->stock} available."
                     );
@@ -123,6 +135,20 @@ class OrderController extends BaseController
 
             Log::info("Event dispatched successfully");
 
+            // Return JSON for AJAX requests
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Order created successfully',
+                    'order' => [
+                        'id' => $order->id,
+                        'total' => $total,
+                        'items' => count($cart)
+                    ]
+                ]);
+            }
+
+            // Redirect for non-AJAX requests
             return redirect()->route('customer.dashboard')->with([
                 'checkout_success' => [
                     'order_id' => $order->id,
@@ -136,6 +162,15 @@ class OrderController extends BaseController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+
+            // Return JSON for AJAX requests
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to process order: ' . $e->getMessage()
+                ], 500);
+            }
+
             throw $e;
         }
     }
@@ -304,5 +339,16 @@ class OrderController extends BaseController
             ]);
             return redirect()->back()->with('error', 'Failed to cancel order: ' . $e->getMessage());
         }
+    }
+
+    public function customerShow(Order $order)
+    {
+        // Verify that the authenticated user owns this order
+        if (auth()->id() !== $order->user_id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $order->load(['items.product']); // Eager load relationships
+        return view('customer.orders.show', compact('order'));
     }
 }

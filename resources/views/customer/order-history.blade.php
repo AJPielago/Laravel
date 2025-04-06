@@ -1,71 +1,67 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-gradient-to-r from-indigo-500 to-purple-500 py-12">
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-white shadow-xl rounded-lg p-8">
-            <h1 class="text-3xl font-bold text-indigo-600 mb-6">My Order History</h1>
-            
-            @forelse($orders as $order)
-                <div class="bg-gray-50 rounded-lg p-6 mb-4 border border-gray-200">
-                    <div class="flex justify-between items-center mb-4">
+<div class="bg-white shadow-xl rounded-lg p-8">
+    <h1 class="text-3xl font-bold text-indigo-600 mb-6">My Order History</h1>
+    
+    @forelse($orders as $order)
+        <div class="bg-gray-50 rounded-lg p-6 mb-4 border border-gray-200">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800">Order #{{ $order->id }}</h2>
+                    <p class="text-gray-600">Placed on {{ $order->created_at->format('M d, Y') }}</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-sm font-medium 
+                    @if($order->status === 'completed') bg-green-100 text-green-800
+                    @elseif($order->status === 'pending') bg-yellow-100 text-yellow-800
+                    @elseif($order->status === 'processing') bg-blue-100 text-blue-800
+                    @else bg-red-100 text-red-800
+                    @endif">
+                    {{ ucfirst($order->status) }}
+                </span>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                @foreach($order->items as $item)
+                    <div class="flex items-center space-x-4 bg-white p-4 rounded-lg shadow-sm">
+                        <img src="{{ asset('storage/' . $item->product->image) }}" 
+                             alt="{{ $item->product->name }}" 
+                             class="w-20 h-20 object-cover rounded-md">
                         <div>
-                            <h2 class="text-xl font-semibold text-gray-800">Order #{{ $order->id }}</h2>
-                            <p class="text-gray-600">Placed on {{ $order->created_at->format('M d, Y') }}</p>
+                            <h3 class="font-semibold text-gray-800">{{ $item->product->name }}</h3>
+                            <p class="text-gray-600">Quantity: {{ $item->quantity }}</p>
+                            <p class="text-indigo-600 font-bold">${{ number_format($item->price * $item->quantity, 2) }}</p>
+                            
+                            @if($order->status === 'completed')
+                                @php
+                                    $existingReview = $item->product->reviews()
+                                        ->where('user_id', auth()->id())
+                                        ->where('order_id', $order->id)
+                                        ->first();
+                                @endphp
+                                
+                                @if(!$existingReview)
+                                    <button onclick="openReviewModal({{ $item->product->id }}, {{ $order->id }})" 
+                                            class="mt-2 px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition">
+                                        Write a Review
+                                    </button>
+                                @endif
+                            @endif
                         </div>
-                        <span class="px-3 py-1 rounded-full text-sm font-medium 
-                            @if($order->status === 'completed') bg-green-100 text-green-800
-                            @elseif($order->status === 'pending') bg-yellow-100 text-yellow-800
-                            @elseif($order->status === 'processing') bg-blue-100 text-blue-800
-                            @else bg-red-100 text-red-800
-                            @endif">
-                            {{ ucfirst($order->status) }}
-                        </span>
                     </div>
-
-                    <div class="grid md:grid-cols-2 gap-4">
-                        @foreach($order->items as $item)
-                            <div class="flex items-center space-x-4 bg-white p-4 rounded-lg shadow-sm">
-                                <img src="{{ asset('storage/' . $item->product->image) }}" 
-                                     alt="{{ $item->product->name }}" 
-                                     class="w-20 h-20 object-cover rounded-md">
-                                <div>
-                                    <h3 class="font-semibold text-gray-800">{{ $item->product->name }}</h3>
-                                    <p class="text-gray-600">Quantity: {{ $item->quantity }}</p>
-                                    <p class="text-indigo-600 font-bold">${{ number_format($item->price * $item->quantity, 2) }}</p>
-                                    
-                                    @if($order->status === 'completed')
-                                        @php
-                                            $existingReview = $item->product->reviews()
-                                                ->where('user_id', auth()->id())
-                                                ->where('order_id', $order->id)
-                                                ->first();
-                                        @endphp
-                                        
-                                        @if(!$existingReview)
-                                            <button onclick="openReviewModal({{ $item->product->id }}, {{ $order->id }})" 
-                                                    class="mt-2 px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition">
-                                                Write a Review
-                                            </button>
-                                        @endif
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @empty
-                <div class="text-center text-gray-600 py-8">
-                    <p>You haven't placed any orders yet.</p>
-                </div>
-            @endforelse
+                @endforeach
+            </div>
         </div>
-    </div>
+        @empty
+        <div class="text-center text-gray-600 py-8">
+            <p>You haven't placed any orders yet.</p>
+        </div>
+    @endforelse
 </div>
-
 @endsection
 
 @push('scripts')
+<!-- JavaScript remains unchanged -->
 <script>
 function openReviewModal(productId, orderId) {
     // Create a modal for writing a review
@@ -142,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(reviewForm);
             
             try {
-                const response = await fetch('{{ route("reviews.store") }}', {
+                const response = await fetch(`{{ route('reviews.store', '') }}/${formData.get('product_id')}`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',

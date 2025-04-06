@@ -1,12 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lara Shop - Orders</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 text-gray-900">
+@extends('layouts.app')
+
+@section('content')
     @if(session('toast'))
         <x-toast 
             :message="session('toast')['message']"
@@ -17,65 +11,61 @@
 
     <div id="dynamic-toast"></div>
 
-    @include('layouts.header')
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="bg-white shadow-lg rounded-lg p-8">
+            <div class="mb-6">
+                <h1 class="text-3xl font-bold text-indigo-600">Orders</h1>
+                <p class="mt-2 text-gray-600">Manage customer orders and update their status.</p>
+            </div>
 
-    <main class="min-h-[calc(100vh-8rem)] bg-gradient-to-r from-indigo-500 to-purple-500 py-12">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white shadow-lg rounded-lg p-8">
-                <div class="mb-6">
-                    <h1 class="text-3xl font-bold text-indigo-600">Orders</h1>
-                    <p class="mt-2 text-gray-600">Manage customer orders and update their status.</p>
-                </div>
-
-                <div class="overflow-x-auto bg-white shadow-lg rounded-lg">
-                    <table id="orders-table" class="w-full border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 border-b">
-                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Order ID</th>
-                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Customer</th>
-                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Total</th>
-                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
-                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            @forelse($orders as $order)
-                            <tr class="hover:bg-gray-50 transition duration-150">
-                                <td class="px-6 py-4 text-sm text-gray-700">#{{ $order->id }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-700">{{ $order->user->name }}</td>
-                                <td class="px-6 py-4">
-                                    <select onchange="updateOrderStatus({{ $order->id }}, this.value)" 
-                                            class="status-select px-3 py-1 text-sm font-semibold rounded border-gray-300 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50
-                                            @if($order->status === 'confirmed') bg-blue-100 text-blue-700 
-                                            @elseif($order->status === 'pending') bg-yellow-100 text-yellow-700 
-                                            @elseif($order->status === 'delivered') bg-green-100 text-green-700 
-                                            @else bg-red-100 text-red-700 
-                                            @endif">
-                                        <option value="pending" {{ $order->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                        <option value="confirmed" {{ $order->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
-                                        <option value="delivered" {{ $order->status === 'delivered' ? 'selected' : '' }}>Delivered</option>
-                                        <option value="cancelled" {{ $order->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                                    </select>
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-700">${{ number_format($order->total, 2) }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-700">{{ $order->created_at->format('M d, Y') }}</td>
-                                <td class="px-6 py-4 text-sm space-x-3">
-                                    <a href="{{ route('orders.show', $order) }}" class="text-indigo-600 hover:text-indigo-900 font-medium">View</a>
-                                    <a href="{{ route('orders.manage', $order) }}" class="text-indigo-600 hover:text-indigo-900 font-medium">Manage</a>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">No orders found</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+            <div class="overflow-x-auto bg-white shadow-lg rounded-lg">
+                <table id="orders-table" class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 border-b">
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Order ID</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Customer</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Total</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @forelse($orders as $order)
+                        <tr class="hover:bg-gray-50 transition duration-150">
+                            <td class="px-6 py-4 text-sm text-gray-700">#{{ $order->id }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-700">{{ $order->user->name }}</td>
+                            <td class="px-6 py-4">
+                                <select onchange="updateOrderStatus({{ $order->id }}, this.value)" 
+                                        class="status-select px-3 py-1 text-sm font-semibold rounded border-gray-300 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50
+                                        @if($order->status === 'confirmed') bg-blue-100 text-blue-700 
+                                        @elseif($order->status === 'pending') bg-yellow-100 text-yellow-700 
+                                        @elseif($order->status === 'delivered') bg-green-100 text-green-700 
+                                        @else bg-red-100 text-red-700 
+                                        @endif">
+                                    <option value="pending" {{ $order->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                    <option value="confirmed" {{ $order->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                                    <option value="delivered" {{ $order->status === 'delivered' ? 'selected' : '' }}>Delivered</option>
+                                    <option value="cancelled" {{ $order->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                </select>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">${{ number_format($order->total, 2) }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-700">{{ $order->created_at->format('M d, Y') }}</td>
+                            <td class="px-6 py-4 text-sm space-x-3">
+                                <a href="{{ route('orders.show', $order) }}" class="text-indigo-600 hover:text-indigo-900 font-medium">View</a>
+                                <a href="{{ route('orders.manage', $order) }}" class="text-indigo-600 hover:text-indigo-900 font-medium">Manage</a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">No orders found</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
-    </main>
+    </div>
 
     <script>
     function updateOrderStatus(orderId, newStatus) {
@@ -118,11 +108,4 @@
         });
     }
     </script>
-
-    <footer class="bg-white shadow-md py-4 mt-auto">
-        <div class="container mx-auto px-6 text-center text-gray-600">
-            <p>&copy; 2025 Lara Shop. All rights reserved.</p>
-        </div>
-    </footer>
-</body>
-</html>
+@endsection

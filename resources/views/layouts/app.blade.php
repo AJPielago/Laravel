@@ -13,17 +13,38 @@
 
         <!-- Styles -->
         <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+
+        <!-- Core Scripts (Order matters!) -->
+        <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        
+        <!-- Additional Scripts -->
         @vite(['resources/css/app.css'])
         <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        
+        <!-- Ensure Alpine is loaded -->
+        <script>
+            document.addEventListener('alpine:init', () => {
+                console.log('Alpine initialized');
+            });
+        </script>
+
+        <style>
+            [x-cloak] { display: none !important; }
+        </style>
+
         @stack('styles')
     </head>
     <body class="font-sans antialiased bg-gray-50">
         <div class="min-h-screen flex flex-col">
             @include('layouts.header')
 
-            <main class="flex-grow container mx-auto px-4 py-6">
-                @yield('content')
+            <main class="flex-grow min-h-[calc(100vh-8rem)] bg-gradient-to-r from-indigo-500 to-purple-500 py-8">
+                <div class="container mx-auto px-4">
+                    @yield('content')
+                </div>
             </main>
 
             @include('layouts.footer')
@@ -97,9 +118,6 @@
         @endif
 
         <!-- Scripts -->
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         @vite(['resources/js/app.js'])
         @stack('scripts')
     </body>

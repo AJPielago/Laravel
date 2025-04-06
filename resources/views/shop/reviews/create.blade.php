@@ -2,7 +2,7 @@
     <div class="flex items-center justify-center min-h-screen p-4">
         <div class="bg-white rounded-lg w-full max-w-md p-6">
             <h2 class="text-2xl font-bold mb-4">Write a Review</h2>
-            <form id="reviewForm" action="{{ route('reviews.store') }}" method="POST">
+            <form id="reviewForm" action="{{ route('reviews.store', ['product' => $product]) }}" method="POST">
                 @csrf
                 <input type="hidden" name="product_id" value="{{ $product->id }}">
                 <input type="hidden" name="order_id" id="order_id">

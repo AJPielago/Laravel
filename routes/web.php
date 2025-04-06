@@ -56,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('cart.add');
     Route::delete('/cart/remove/{product}', [CartController::class, 'remove'])
         ->name('cart.remove');
+    Route::get('/customer/orders/{order}', [OrderController::class, 'customerShow'])->name('customer.orders.show');
 
     // Review Routes
     Route::post('/reviews/{product}', [ReviewController::class, 'store'])

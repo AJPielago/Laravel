@@ -1,81 +1,83 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lara Shop - Welcome</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>
-        .slider-container {
-            overflow: hidden;
-            width: 100%;
-            max-width: 800px;
-            margin: auto;
-            position: relative;
-        }
+@extends('layouts.app')
 
-        .slider {
-            display: flex;
-            transition: transform 0.8s ease-in-out;
-        }
+@push('styles')
+<style>
+    .slider-container {
+        overflow: hidden;
+        width: 100%;
+        max-width: 800px;
+        margin: auto;
+        position: relative;
+    }
 
-        .slide {
-            flex: 0 0 33.33%;
-            /* Improved transition for smooth scaling and opacity */
-            transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-            position: relative;
-            z-index: 1;
-        }
+    .slider {
+        display: flex;
+        transition: transform 0.8s ease-in-out;
+    }
 
-        .slide.active {
-            transform: scale(1.1);
-            z-index: 10;
-        }
-        
-        /* No transition for the reset */
-        .no-transition {
-            transition: none !important;
-        }
-        
-        /* Add perspective for a more dynamic effect */
-        .card-perspective {
-            perspective: 1000px;
-        }
-        
-        .card-content {
-            backface-visibility: hidden;
-            transform-style: preserve-3d;
-            transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        
-        .active .card-content {
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-    </style>
-</head>
-<body class="bg-gray-100 text-gray-900">
-    <header class="bg-white shadow-md py-4">
-        <div class="container mx-auto flex justify-between items-center px-6">
-            <h1 class="text-2xl font-bold text-indigo-600">Lara Shop</h1>
-        </div>
-    </header>
+    .slide {
+        flex: 0 0 33.33%;
+        /* Improved transition for smooth scaling and opacity */
+        transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        position: relative;
+        z-index: 1;
+    }
 
+    .slide.active {
+        transform: scale(1.1);
+        z-index: 10;
+    }
+    
+    /* No transition for the reset */
+    .no-transition {
+        transition: none !important;
+    }
+    
+    /* Add perspective for a more dynamic effect */
+    .card-perspective {
+        perspective: 1000px;
+    }
+    
+    .card-content {
+        backface-visibility: hidden;
+        transform-style: preserve-3d;
+        transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    
+    .active .card-content {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+</style>
+@endpush
+
+@section('hideHeaderAuth', true)
+@section('hideHeaderLogin', true)
+
+@section('content')
     <!-- Hero Section -->
-    <section class="text-center py-16 bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
-        <h2 class="text-4xl font-bold mb-4">Welcome to Lara Shop</h2>
-        <p class="text-lg mb-6">Discover amazing products and enjoy a seamless shopping experience.</p>
-        <div class="flex justify-center space-x-4">
-            @auth
-                <a href="{{ auth()->user()->role === 'admin' ? route('dashboard') : route('customer.dashboard') }}" 
-                   class="bg-white text-indigo-600 hover:bg-indigo-50 px-8 py-3 rounded-full font-semibold transition duration-300 shadow-lg hover:shadow-xl">
-                    Browse Products
-                </a>
-            @else
-                <a href="{{ route('login') }}" class="bg-white text-indigo-600 hover:bg-indigo-50 px-8 py-3 rounded-full font-semibold transition duration-300 shadow-lg hover:shadow-xl">
-                    Login to Shop
-                </a>
-            @endauth
+    <section class="text-center py-16 bg-gradient-to-r from-indigo-500 to-purple-500">
+        <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+            <h2 class="text-4xl font-bold mb-4 text-indigo-600">Welcome to Lara Shop</h2>
+            <p class="text-lg mb-6 text-gray-600">Discover amazing products and enjoy a seamless shopping experience.</p>
+            <div class="flex justify-center space-x-4">
+                @auth
+                    <a href="{{ auth()->user()->role === 'admin' ? route('dashboard') : route('customer.dashboard') }}" 
+                       class="bg-indigo-600 text-white hover:bg-indigo-700 px-8 py-3 rounded-full font-semibold transition duration-300 shadow-lg hover:shadow-xl">
+                        Browse Products
+                    </a>
+                @else
+                    <a href="{{ route('login') }}" 
+                       class="relative inline-flex items-center justify-center px-8 py-3 overflow-hidden font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full group hover:scale-105 transition-all duration-300 ease-out hover:shadow-xl">
+                        <span class="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-gradient-to-r from-purple-600 to-indigo-500 group-hover:translate-x-0 ease">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                            </svg>
+                        </span>
+                        <span class="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">Login to Shop</span>
+                        <span class="relative invisible">Login to Shop</span>
+                    </a>
+                @endauth
+            </div>
         </div>
     </section>
 
@@ -162,34 +164,28 @@
             </div>
         @endif
     </section>
+@endsection
 
-    <!-- Footer -->
-    <footer class="bg-lavender-50 text-gray-700 text-center py-6 mt-10 border-t border-cyan-100">
-        <p>&copy; 2025 Lara Shop. All rights reserved.</p>
-    </footer>
-
-    @push('scripts')
-    <script>
-        function productSlider() {
-            return {
-                activeSlide: null,
-                updateActiveSlide(event) {
-                    const slider = this.$refs.slider;
-                    const slides = slider.children;
-                    const mouseX = event.clientX - slider.getBoundingClientRect().left;
-                    const sliderWidth = slider.offsetWidth;
-                    const slideWidth = slides[0].offsetWidth;
-                    
-                    // Calculate which slide should be active based on mouse position
-                    const activeIndex = Math.floor(mouseX / slideWidth);
-                    
-                    if (activeIndex >= 0 && activeIndex < slides.length) {
-                        this.activeSlide = activeIndex;
-                    }
+@push('scripts')
+<script>
+    function productSlider() {
+        return {
+            activeSlide: null,
+            updateActiveSlide(event) {
+                const slider = this.$refs.slider;
+                const slides = slider.children;
+                const mouseX = event.clientX - slider.getBoundingClientRect().left;
+                const sliderWidth = slider.offsetWidth;
+                const slideWidth = slides[0].offsetWidth;
+                
+                // Calculate which slide should be active based on mouse position
+                const activeIndex = Math.floor(mouseX / slideWidth);
+                
+                if (activeIndex >= 0 && activeIndex < slides.length) {
+                    this.activeSlide = activeIndex;
                 }
             }
         }
-    </script>
-    @endpush
-</body>
-</html>
+    }
+</script>
+@endpush

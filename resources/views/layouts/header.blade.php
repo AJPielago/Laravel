@@ -100,14 +100,14 @@
                     </div>
                 </div>
             @else
-                <div class="flex space-x-4">
+                @unless(View::hasSection('hideHeaderLogin'))
                     <a href="{{ route('login') }}" class="text-indigo-600 hover:text-indigo-700">
                         Log in
                     </a>
-                    <a href="{{ route('register') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
-                        Register
-                    </a>
-                </div>
+                @endunless
+                <a href="{{ route('register') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                    Register
+                </a>
             @endauth
         </div>
     </div>
