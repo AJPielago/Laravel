@@ -30,12 +30,9 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
                             <select id="category-filter" name="category" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
                                 <option value="">All Categories</option>
-                                <option value="Pencils">Pencils</option>
-                                <option value="Papers">Papers</option>
-                                <option value="Accessories">Accessories</option>
-                                <option value="Boards">Boards</option>
-                                <option value="Colors">Colors</option>
-                                <option value="Erasers">Erasers</option>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->name }}">{{ $category->name }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div>

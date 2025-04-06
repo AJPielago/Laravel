@@ -15,6 +15,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::query();
+        $categories = Category::all(); // Add this line
 
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
@@ -32,7 +33,7 @@ class ProductController extends Controller
                          ->latest()
                          ->paginate(10);
 
-        return view('products.index', compact('products'));
+        return view('products.index', compact('products', 'categories')); // Add categories
     }
 
     public function create()
