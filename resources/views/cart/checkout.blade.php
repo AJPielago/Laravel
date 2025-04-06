@@ -23,22 +23,22 @@
                 if (data.success) {
                     // Build receipt HTML
                     let receiptHtml = `
-                        <div class="space-y-4 text-left">
-                            <div class="border-b pb-4">
+                        <div class="space-y-4 text-left text-white">
+                            <div class="border-b border-white/20 pb-4">
                                 <div class="flex justify-between">
-                                    <span class="text-gray-600">Order #</span>
+                                    <span class="text-white/80">Order #</span>
                                     <span class="font-semibold">${data.order.id}</span>
                                 </div>
                                 <div class="flex justify-between mt-2">
-                                    <span class="text-gray-600">Date</span>
+                                    <span class="text-white/80">Date</span>
                                     <span>${new Date().toLocaleDateString()}</span>
                                 </div>
                             </div>
-                            <div class="border-b pb-4">
+                            <div class="border-b border-white/20 pb-4">
                                 <h3 class="font-semibold mb-2">Shipping Information</h3>
                                 <div class="text-sm">
-                                    <p><span class="text-gray-600">Address:</span> ${formData.get('shipping_address')}</p>
-                                    <p><span class="text-gray-600">Phone:</span> ${formData.get('phone')}</p>
+                                    <p><span class="text-white/80">Address:</span> ${formData.get('shipping_address')}</p>
+                                    <p><span class="text-white/80">Phone:</span> ${formData.get('phone')}</p>
                                 </div>
                             </div>
                             <div>
@@ -48,17 +48,17 @@
                                     <div class="flex justify-between text-sm">
                                         <div>
                                             <p class="font-medium">{{ $details['name'] }}</p>
-                                            <p class="text-gray-500">Qty: {{ $details['quantity'] }}</p>
+                                            <p class="text-white/70">Qty: {{ $details['quantity'] }}</p>
                                         </div>
                                         <p class="font-semibold">${{ number_format($details['price'] * $details['quantity'], 2) }}</p>
                                     </div>
                                     @endforeach
                                 </div>
                             </div>
-                            <div class="border-t pt-4 mt-4">
+                            <div class="border-t border-white/20 pt-4 mt-4">
                                 <div class="flex justify-between">
                                     <span class="text-lg font-bold">Total</span>
-                                    <span class="text-lg font-bold text-indigo-600">${{ number_format($total, 2) }}</span>
+                                    <span class="text-lg font-bold">${{ number_format($total, 2) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -70,23 +70,37 @@
                         icon: 'success',
                         width: 600,
                         confirmButtonText: 'Continue Shopping',
-                        confirmButtonColor: '#4f46e5',
-                        allowOutsideClick: false,
-                        showCloseButton: true,
+                        confirmButtonColor: '#ffffff',
+                        buttonsStyling: false, // Disable default styling
+                        background: 'linear-gradient(to right, #4f46e5, #7c3aed)', // Match app's indigo to purple gradient
+                        color: '#ffffff', // Make modal title text white
                         customClass: {
                             container: 'receipt-modal',
-                            popup: 'rounded-xl shadow-2xl',
-                            htmlContainer: 'p-0'
+                            popup: 'rounded-xl shadow-2xl p-4',
+                            htmlContainer: 'p-0',
+                            title: 'text-2xl mb-4',
+                            closeButton: 'text-white hover:text-gray-200',
+                            confirmButton: 'px-6 py-3 bg-white !text-indigo-700 hover:bg-gray-50 font-semibold rounded-lg transition-colors duration-200'
                         }
                     }).then((result) => {
-                        window.location.href = '{{ route('customer.dashboard') }}';
+                        window.location.href = '{{ route('shop.index') }}';
                     });
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Order Failed',
                         text: data.message || 'Something went wrong',
-                        footer: '<a href="#" onclick="location.reload()">Try Again</a>'
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        background: 'linear-gradient(to right, #ff6b6b, #ff4757)',
+                        color: '#ffffff',
+                        iconColor: '#ffffff',
+                        customClass: {
+                            popup: 'rounded-lg shadow-xl'
+                        }
                     });
                 }
             })
